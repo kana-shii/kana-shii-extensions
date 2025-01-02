@@ -84,11 +84,8 @@ open class BatoTo(
         val removeOfficialPref = CheckBoxPreference(screen.context).apply {
             key = "${REMOVE_TITLE_VERSION_PREF}_$lang"
             title = "Remove version information from entry titles"
-            summary = "This removes version tags like '(Official)' or '(Yaoi)' from entry titles " +
-                "and helps identify duplicate entries in your library. " +
-                "To update existing entries, remove them from your library (unfavorite) and refresh manually. " +
-                "You might also want to clear the database in advanced settings."
-            setDefaultValue(false)
+            summary = "This removes version tags like '(Official)' from entry titles."
+            setDefaultValue(true)
         }
         val removeCustomPref = EditTextPreference(screen.context).apply {
             key = "${REMOVE_TITLE_CUSTOM_PREF}_$lang"
