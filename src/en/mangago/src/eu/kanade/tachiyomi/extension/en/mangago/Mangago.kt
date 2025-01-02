@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Rect
 import android.util.Base64
+import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
 import app.cash.quickjs.QuickJs
@@ -171,13 +172,13 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
     override fun searchMangaNextPageSelector() = genreListingNextPageSelector
 
     private var titleRegex: Regex =
-        Regex("\\([^()]*\\)|\\{[^{}]*\\}|\\[(?:(?!]).)*]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|𖤍.+?𖤍|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩|\\/Official|\\/ Official", RegexOption.IGNORE_CASE)
+        Regex("\\([^()]*\\)|\\{[^{}]*\\}|\\[(?:(?!]).)*]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|𖤍.+?𖤍|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩|\\/Official|\\/ Official|【[^】]*】", RegexOption.IGNORE_CASE)
 
     override fun mangaDetailsParse(document: Document) = SManga.create().apply {
         title = document.selectFirst(".w-title h1")!!.text()
-        if (isRemoveTitleVersion()) {
-            title = title.replace(titleRegex, "").trim()
-        }
+            .replace(Regex(customRemoveTitle()), "")
+            .replace(if (isRemoveTitleVersion()) titleRegex else Regex(""), "")
+            .trim()
 
         document.getElementById("information")!!.let {
             thumbnail_url = it.selectFirst("img")!!.attr("abs:src")
@@ -565,19 +566,27 @@ class Mangago : ParsedHttpSource(), ConfigurableSource {
     }
     private fun isRemoveTitleVersion() = preferences.getBoolean(REMOVE_TITLE_VERSION_PREF, false)
 
+    private fun customRemoveTitle(): String =
+        preferences.getString("${REMOVE_TITLE_CUSTOM_PREF}_$lang", "") ?: ""
+
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
             key = REMOVE_TITLE_VERSION_PREF
             title = "Remove version information from entry titles"
-            summary = "This removes version tags like '(Official)' or '(Yaoi)' from entry titles " +
-                "and helps identify duplicate entries in your library. " +
-                "To update existing entries, remove them from your library (unfavorite) and refresh manually. " +
-                "You might also want to clear the database in advanced settings."
+            summary = "This removes version tags like '(Official)' from entry titles."
             setDefaultValue(false)
+        }.let(screen::addPreference)
+
+        EditTextPreference(screen.context).apply {
+            key = "${REMOVE_TITLE_CUSTOM_PREF}_$lang"
+            title = "Custom regex to be removed from title"
+            summary = preferences.getString("${REMOVE_TITLE_CUSTOM_PREF}_$lang", "") ?: ""
+            setDefaultValue("")
         }.let(screen::addPreference)
         addRandomUAPreferenceToScreen(screen)
     }
     companion object {
         private const val REMOVE_TITLE_VERSION_PREF = "REMOVE_TITLE_VERSION"
+        private const val REMOVE_TITLE_CUSTOM_PREF = "TITLE_REGEX_PATTERN"
     }
 }
