@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload APKs (chunk ${{ matrix.chunk }})
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
-        if: github.repository == 'komikku-app/komikku-extensions'
+        if: github.repository == 'kana-shii/komikku-extensions'
         with:
           name: "individual-apks-${{ matrix.chunk }}"
           path: "**/*.apk"
@@ -103,7 +103,7 @@ jobs:
     name: Publish repo
     needs:
       - build_individual
-    if: github.repository == 'komikku-app/komikku-extensions'
+    if: github.repository == 'kana-shii/komikku-extensions'
     runs-on: ubuntu-latest
     steps:
       - name: Download APK artifacts
@@ -135,7 +135,7 @@ jobs:
       - name: Checkout repo branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          repository: komikku-app/extensions
+          repository: kana-shii/extensions
           token: ${{ secrets.BOT_PAT }}
           ref: repo
           path: repo
