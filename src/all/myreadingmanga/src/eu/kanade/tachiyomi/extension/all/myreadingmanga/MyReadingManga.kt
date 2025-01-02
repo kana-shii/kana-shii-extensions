@@ -263,9 +263,28 @@ open class MyReadingManga(override val lang: String, private val siteLang: Strin
             filtersCached = true
             Jsoup.parse(filterMap[url]!!)
         }
-        return document?.select(css)?.map { it.text() }?.toTypedArray()
-            ?: arrayOf("Press 'Reset' to load filters")
+        return document?.select(css)?.map { it.text() }?.map { name ->
+            groupNameMapping[name] ?: pairingNameMapping[name] ?: categoryNameMapping[name] ?: name
+        }?.toTypedArray() ?: arrayOf("Press 'Reset' to load filters")
     }
+
+    private val categoryNameMapping = mapOf(
+        "Ace Attorney dj, Gyakuten Saiban" to "Gyakuten Saiban | Ace Attorney dj",
+        "Ace of Diamond dj, Daiya no A" to "Daiya no A | Ace of Diamond dj",
+        "Assassination Classroom dj, Ansatsu Kyoushitsu" to "Ansatsu Kyoushitsu | Assassination Classroom dj",
+    )
+
+    private val pairingNameMapping = mapOf(
+        "Cu Chulainn, Archer x Lancer" to "Archer x Lancer | Cu Chulainn",
+        "Cu Chulainn, Gudao x Lancer" to "Gudao x Lancer | Cu Chulainn",
+        "Cu Chulainn x Archer, Lancer" to "Lancer | Cu Chulainn x Archer",
+        "Horohoro x Tao Ren, Usui Horokeu" to "Usui Horokeu | Horohoro x Tao Ren",
+        "Judar x Hakuryuu Ren, Judal" to "Judal | Judar x Hakuryuu Ren",
+    )
+
+    private val groupNameMapping = mapOf(
+        "Cesegura, cseg64" to "cseg64 | Cesegura",
+    )
 
     // URLs for the pages we need to cache
     private val cachedPagesUrls = hashMapOf(
