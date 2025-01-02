@@ -1,4 +1,4 @@
-name: CI-komikku
+name: CI-kanashii
 
 on:
   push:
