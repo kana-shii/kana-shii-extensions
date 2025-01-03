@@ -1,6 +1,12 @@
 package eu.kanade.tachiyomi.extension.all.yaoimangaonline
 
+import android.app.Application
+import android.content.SharedPreferences
+import androidx.preference.EditTextPreference
+import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreferenceCompat
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -10,8 +16,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
-class YaoiMangaOnline : ParsedHttpSource() {
+class YaoiMangaOnline : ParsedHttpSource(), ConfigurableSource {
     override val lang = "all"
 
     override val name = "Yaoi Manga Online"
@@ -20,6 +28,10 @@ class YaoiMangaOnline : ParsedHttpSource() {
 
     // Popular is actually latest
     override val supportsLatest = false
+
+    private val preferences: SharedPreferences by lazy {
+        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
+    }
 
     override fun latestUpdatesSelector() = popularMangaSelector()
 
@@ -70,9 +82,16 @@ class YaoiMangaOnline : ParsedHttpSource() {
             thumbnail_url = element.selectFirst("img")?.attr("src")
         }
 
+    private var titleRegex: Regex =
+        Regex("(?s)(by\\b(?:(?!by\\b).)*\$)|\\([^()]*\\)|\\[(?:(?!]).)*]", RegexOption.IGNORE_CASE)
+
     override fun mangaDetailsParse(document: Document) =
         SManga.create().apply {
             title = document.select("h1.entry-title").text()
+                .replace(Regex(customRemoveTitle()), "")
+                .replace(if (isRemoveTitleVersion()) titleRegex else Regex(""), "")
+                .trim()
+
             thumbnail_url = document
                 .selectFirst(".herald-post-thumbnail img")?.attr("src")
             description = document.select(".entry-content > p").text()
@@ -107,4 +126,29 @@ class YaoiMangaOnline : ParsedHttpSource() {
 
     override fun getFilterList() =
         FilterList(CategoryFilter(), TagFilter())
+
+    private fun isRemoveTitleVersion() = preferences.getBoolean(REMOVE_TITLE_VERSION_PREF, false)
+
+    private fun customRemoveTitle(): String =
+        preferences.getString("${REMOVE_TITLE_CUSTOM_PREF}_$lang", "") ?: ""
+
+    override fun setupPreferenceScreen(screen: PreferenceScreen) {
+        SwitchPreferenceCompat(screen.context).apply {
+            key = REMOVE_TITLE_VERSION_PREF
+            title = "Remove version information from entry titles"
+            summary = "This removes version tags like '(Official)' from entry titles."
+            setDefaultValue(false)
+        }.let(screen::addPreference)
+
+        EditTextPreference(screen.context).apply {
+            key = "${REMOVE_TITLE_CUSTOM_PREF}_$lang"
+            title = "Custom regex to be removed from title"
+            summary = preferences.getString("${REMOVE_TITLE_CUSTOM_PREF}_$lang", "") ?: ""
+            setDefaultValue("")
+        }.let(screen::addPreference)
+    }
+    companion object {
+        private const val REMOVE_TITLE_VERSION_PREF = "REMOVE_TITLE_VERSION"
+        private const val REMOVE_TITLE_CUSTOM_PREF = "TITLE_REGEX_PATTERN"
+    }
 }
